@@ -1,0 +1,8 @@
+.idea/
+*.pyc
+__pycache__/
+ENV
+app/local_settings.py
+*.json
+*.log
+
