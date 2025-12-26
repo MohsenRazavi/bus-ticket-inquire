@@ -2,7 +2,7 @@ import traceback
 from datetime import datetime, timedelta
 
 from app.settings import TRIPS, NEXT_DAYS
-from app.utils import send_bale_message, inquire_and_send_trips, read_json_file
+from app.utils import send_bale_message, inquire_and_send_trips
 
 
 def main():
@@ -12,7 +12,6 @@ def main():
         for trip in TRIPS:
             try:
                 inquire_and_send_trips(date=date_.strftime('%Y-%m-%d'), **trip)
-                raise
             except Exception:
                 send_bale_message(traceback.format_exc(limit=4000), exception_report=True)
 
