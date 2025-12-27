@@ -1,13 +1,15 @@
 import json
-import traceback
 
 import requests
 
-from app.settings import (BALE_URL, BALE_TOKEN, GROUP_CHAT_ID, INQUIRED_IDS_JSON, EXCEPTION_REPORT_CHAT_ID, MRBILIT_URL,
-                          SAMPLE_TEXT, ALERT_TEXT, DEBUG)
+from app.constants import BALE_URL, MRBILIT_INQUIRE_URL, SAMPLE_TEXT, ALERT_TEXT, MRBILIT_RESERVE_URL, DATE_FORMAT
+from app.settings import (BALE_TOKEN, GROUP_CHAT_ID, INQUIRED_IDS_JSON, EXCEPTION_REPORT_CHAT_ID, DEBUG,
+                          TODAY_INQUIRED_IDS_JSON, SEND_MESSAGE)
+import jdatetime
+import datetime
 
 
-def inquire_and_send_trips(source, destination, date):
+def inquire_and_send_trips(source, destination, date, today_date):
     headers = {
         "accept": "application/json, text/plain, */*",
         "accept-language": "en-US,en;q=0.9,fa;q=0.8",
@@ -23,18 +25,18 @@ def inquire_and_send_trips(source, destination, date):
     payload = {
         "from": source,
         "to": destination,
-        "date": date,
+        "date": datetime.datetime.fromtimestamp(date).strftime(DATE_FORMAT),
         "includeClosed": True,
         "includePromotions": True,
         "loadFromDbOnUnavailability": True,
         "includeUnderDevelopment": True
     }
-    response = requests.post(MRBILIT_URL, headers=headers, json=payload)
+    response = requests.post(MRBILIT_INQUIRE_URL, headers=headers, json=payload)
     status = response.status_code
     if  status != 200:
         send_bale_message(f'STATUS CODE {status} !!!', exception_report=True)
     resp = response.json()
-    inquired_ids: set = read_json_file()
+    inquired_ids: set = read_json_file(today_json=today_date)
     for bus in resp['buses']:
         id_ = bus.get('id')
         if id_ in inquired_ids:
@@ -44,7 +46,6 @@ def inquire_and_send_trips(source, destination, date):
         company = bus.get('corporation')
         capacity = bus.get('capacity')
         from_city = bus.get('fromCity')
-        penalty_text = bus.get('penaltyText')
         price = bus.get('price')
         to_city = bus.get('toCity')
         weekday = bus.get('weekday')
@@ -54,6 +55,8 @@ def inquire_and_send_trips(source, destination, date):
         departure_time = bus.get('departureTime').split('T')[1]
 
         alert = True if capacity < 20 else False
+        link = MRBILIT_RESERVE_URL.format(source=source, destination=destination,
+                                          date=jdatetime.datetime.fromtimestamp(date).strftime(DATE_FORMAT))
         sending_text = SAMPLE_TEXT.format(from_city=from_city,
                                           arrival_time=arrival_time,
                                           departure_time=departure_time,
@@ -64,10 +67,8 @@ def inquire_and_send_trips(source, destination, date):
                                           company=company,
                                           to_city=to_city,
                                           is_vip=' ⚜️ ' if is_vip else '',
+                                          reserve_link=link
                                           )
-        if penalty_text:
-            sending_text = sending_text + '\n\n' + penalty_text
-
         if alert:
             sending_text = ALERT_TEXT + sending_text
         if DEBUG:
@@ -75,7 +76,7 @@ def inquire_and_send_trips(source, destination, date):
             print(sending_text)
             print(10 * '=', end='\n\n')
         send_bale_message(sending_text)
-    write_to_json_file(inquired_ids)
+    write_to_json_file(inquired_ids, today_json=today_date)
 
 
 def send_bale_message(message, exception_report=False):
@@ -85,21 +86,25 @@ def send_bale_message(message, exception_report=False):
     else:
         chat_id = GROUP_CHAT_ID
     json = {'chat_id': chat_id, 'text': message}
-    resp = requests.post(url, json=json)
-    if DEBUG:
-        print(resp.status_code)
-        print(resp.text)
+    if SEND_MESSAGE:
+        resp = requests.post(url, json=json)
+        if DEBUG:
+            print(resp.status_code)
+            print(resp.text)
 
 
-def read_json_file():
+def read_json_file(today_json=False):
+    file = TODAY_INQUIRED_IDS_JSON if today_json else INQUIRED_IDS_JSON
     try:
-        with open(INQUIRED_IDS_JSON) as json_file:
+        with open(file) as json_file:
             data = json.load(json_file)
             inquired_ids = set(data['ids'])
             return inquired_ids
     except Exception:
         return set()
 
-def write_to_json_file(data):
-    with open(INQUIRED_IDS_JSON, 'w') as json_file:
+
+def write_to_json_file(data, today_json=False):
+    file = TODAY_INQUIRED_IDS_JSON if today_json else INQUIRED_IDS_JSON
+    with open(file, 'w') as json_file:
         json.dump({'ids': list(data)}, json_file)

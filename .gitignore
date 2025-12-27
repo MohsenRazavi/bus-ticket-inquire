@@ -2,7 +2,7 @@
 *.pyc
 __pycache__/
 ENV
-app/local_settings.py
+app/settings/local_settings.py
 *.json
 *.log
 
