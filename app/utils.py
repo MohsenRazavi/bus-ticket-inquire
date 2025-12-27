@@ -2,7 +2,8 @@ import json
 
 import requests
 
-from app.constants import BALE_URL, MRBILIT_INQUIRE_URL, SAMPLE_TEXT, ALERT_TEXT, MRBILIT_RESERVE_URL, DATE_FORMAT
+from app.constants import BALE_URL, MRBILIT_INQUIRE_URL, SAMPLE_TEXT, ALERT_TEXT, MRBILIT_RESERVE_URL, DATE_FORMAT, \
+    VIP_TEXT
 from app.settings import (BALE_TOKEN, GROUP_CHAT_ID, INQUIRED_IDS_JSON, EXCEPTION_REPORT_CHAT_ID, DEBUG,
                           TODAY_INQUIRED_IDS_JSON, SEND_MESSAGE)
 import jdatetime
@@ -42,31 +43,20 @@ def inquire_and_send_trips(source, destination, date, today_date):
         if id_ in inquired_ids:
             continue
         inquired_ids.add(id_)
-        persian_date = bus.get('dateString')
-        company = bus.get('corporation')
         capacity = bus.get('capacity')
-        from_city = bus.get('fromCity')
-        price = bus.get('price')
-        to_city = bus.get('toCity')
-        weekday = bus.get('weekday')
-        bus_type = bus.get('busType')
-        is_vip = bus.get('isVIP')
-        arrival_time = bus.get('arrivalTime').split('T')[1]
-        departure_time = bus.get('departureTime').split('T')[1]
-
-        alert = True if capacity < 20 else False
+        alert = True if capacity and capacity < 20 else False
         link = MRBILIT_RESERVE_URL.format(source=source, destination=destination,
                                           date=jdatetime.datetime.fromtimestamp(date).strftime(DATE_FORMAT))
-        sending_text = SAMPLE_TEXT.format(from_city=from_city,
-                                          arrival_time=arrival_time,
-                                          departure_time=departure_time,
-                                          persian_date=weekday + ' ' + persian_date,
+        sending_text = SAMPLE_TEXT.format(from_city=bus.get('fromCity'),
+                                          arrival_time= bus.get('arrivalTime').split('T')[1],
+                                          departure_time=bus.get('departureTime').split('T')[1],
+                                          persian_date=bus.get('weekday') + ' ' + bus.get('dateString'),
                                           capacity=capacity,
-                                          price=price,
-                                          bus_type=bus_type,
-                                          company=company,
-                                          to_city=to_city,
-                                          is_vip=' ⚜️ ' if is_vip else '',
+                                          price=bus.get('price'),
+                                          bus_type=bus.get('busType'),
+                                          company=bus.get('corporation'),
+                                          to_city=bus.get('toCity'),
+                                          is_vip=VIP_TEXT if bus.get('isVIP') else '',
                                           reserve_link=link
                                           )
         if alert:

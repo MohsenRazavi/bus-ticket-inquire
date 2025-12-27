@@ -4,6 +4,7 @@ CITIES = {
 }
 
 ALERT_TEXT = '🚨🚨🚨🚨🚨'
+VIP_TEXT = ' ⚜️ '
 SAMPLE_TEXT = '''
 {is_vip}بلیط اتوبوس {from_city} به {to_city}{is_vip}
 🗓 زمان: {persian_date} {departure_time} تا {arrival_time}
@@ -12,7 +13,7 @@ SAMPLE_TEXT = '''
 🚍 نوع اتوبوس: {bus_type}
 👨🏼‍✈️ شرکت: {company}
 
-لینک رزرو:
+🌐 لینک رزرو:
 {reserve_link}
 '''
 DATE_FORMAT = '%Y-%m-%d'
