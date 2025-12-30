@@ -1,3 +1,1 @@
 */15 * * * * /usr/bin/bash /abs/path/to/inquire-bus-tiket/executor.sh
-* */2 * * * rm /abs/path/to/inquire-bus-tiket/today_inquired_ids.json
-* */6 * * * rm /abs/path/to/inquire-bus-tiket/inquired_ids.json

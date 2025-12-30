@@ -1,8 +1,10 @@
 import traceback
 from datetime import datetime, timedelta
 
-from app.settings import TRIPS, NEXT_DAYS
-from app.utils import send_bale_message, inquire_and_send_trips
+from app.settings import NEXT_DAYS
+from app.utills.bale import send_exception_message
+from app.utills.inquiry import inquire_and_notify_trips
+from app.utills.trip import read_trips
 
 
 def main():
@@ -10,11 +12,12 @@ def main():
     for i in range(NEXT_DAYS):
         date_ = date_ + timedelta(days=1)
         date_stamp = datetime.timestamp(date_)
-        for trip in TRIPS:
+        trips = read_trips()
+        for trip in trips:
             try:
-                inquire_and_send_trips(date=date_stamp, today_date=i == 0, **trip)
+                inquire_and_notify_trips(trip, date_stamp=date_stamp, today=i == 0)
             except Exception:
-                send_bale_message(traceback.format_exc(limit=4000), exception_report=True)
+                send_exception_message(traceback.format_exc(limit=4000))
 
 
 if __name__ == '__main__':
