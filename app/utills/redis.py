@@ -3,7 +3,8 @@ from functools import wraps
 import redis
 
 from app.constants import REDIS_TRIP_PREFIX
-from app.settings import REDIS_HOST, REDIS_PORT, TODAY_STORING_DURATION, OTHER_DAYS_STORING_DURATION, REDIS_DB
+from app.settings import REDIS_HOST, REDIS_PORT, REDIS_EXPIRATION_DURATION, REDIS_DB, \
+    REDIS_EXCEPTION_EXPIRATION_DURATION
 
 
 def with_redis(func):
@@ -32,12 +33,8 @@ def make_trip_redis_key(trip_id):
 
 
 @with_redis
-def save_trip_to_redis(trip_id, message_id, today=False, _redis=None):
-    if today:
-        duration = TODAY_STORING_DURATION
-    else:
-        duration = OTHER_DAYS_STORING_DURATION
-
+def save_trip_to_redis(trip_id, message_id, day_counter, _redis=None):
+    duration = int(2 * (day_counter + 0.5) * REDIS_EXPIRATION_DURATION)
     redis_key = make_trip_redis_key(trip_id)
     _redis.set(redis_key, message_id, ex=duration)
 
@@ -45,3 +42,13 @@ def save_trip_to_redis(trip_id, message_id, today=False, _redis=None):
 @with_redis
 def reset_redis(_redis):
     _redis.flushdb()
+
+
+@with_redis
+def save_exception_to_redis(exception, message_id, _redis=None):
+    _redis.set(type(exception), message_id, ex=REDIS_EXCEPTION_EXPIRATION_DURATION)
+
+
+@with_redis
+def exception_exists_in_redis(exception, _redis=None):
+    return _redis.get(type(exception))

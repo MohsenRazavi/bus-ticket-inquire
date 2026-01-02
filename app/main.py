@@ -15,7 +15,7 @@ def main():
         trips = read_trips()
         for trip in trips:
             try:
-                inquire_and_notify_trips(trip, date_stamp=date_stamp, today=i == 0)
+                inquire_and_notify_trips(trip, date_stamp=date_stamp, day_counter=i)
             except Exception:
                 send_exception_message(traceback.format_exc(limit=4000))
 

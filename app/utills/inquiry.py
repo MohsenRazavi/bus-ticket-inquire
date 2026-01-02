@@ -5,13 +5,13 @@ import requests
 
 from app.constants import MRBILIT_INQUIRE_URL, SAMPLE_TEXT, ALERT_TEXT, MRBILIT_RESERVE_URL, DATE_FORMAT, \
     VIP_TEXT, MRBILIT_AUTH_TOKEN, MRBILIT_AUTH_SESSION
-from app.settings import (DEBUG_LOG)
+from app.settings import (DEBUG_LOG, DEBUG_SAVE_TO_REDIS)
 from app.utills.bale import send_bale_message, send_exception_message
 from app.utills.redis import save_trip_to_redis, trip_exists_in_redis
 from app.utills.trip import Trip
 
 
-def inquire_and_notify_trips(trip: Trip, date_stamp: float, today: bool):
+def inquire_and_notify_trips(trip: Trip, date_stamp: float, day_counter):
     headers = {
         "accept": "application/json, text/plain, */*",
         "accept-language": "en-US,en;q=0.9,fa;q=0.8",
@@ -48,10 +48,14 @@ def inquire_and_notify_trips(trip: Trip, date_stamp: float, today: bool):
     resp = response.json()
     for bus in resp['buses']:
         id_ = str(bus.get('id'))
-        if trip_exists_in_redis(id_):
-            continue
         capacity = bus.get('capacity')
-        alert = True if capacity and capacity < 20 else False
+        if last_message_id:=trip_exists_in_redis(id_):
+            if capacity == 0:
+                send_bale_message(chat_id=trip.report_chat_id, message='⭕️ ظرفیت تکمیل شد !',
+                                  reply_to_message_id=str(last_message_id))
+            continue
+
+        alert = True if capacity and capacity <= 10 else False
         link = MRBILIT_RESERVE_URL.format(source=trip.source.name, destination=trip.destination.name,
                                           date=jdatetime.datetime.fromtimestamp(date_stamp).strftime(DATE_FORMAT))
         sending_text = SAMPLE_TEXT.format(from_city=bus.get('fromCity'),
@@ -73,4 +77,6 @@ def inquire_and_notify_trips(trip: Trip, date_stamp: float, today: bool):
             print(sending_text)
             print(10 * '=', end='\n\n')
         message_id = send_bale_message(trip.report_chat_id, sending_text)['result']['message_id']
-        save_trip_to_redis(id_, message_id, today=today)
+
+        if DEBUG_SAVE_TO_REDIS:
+            save_trip_to_redis(id_, message_id, day_counter)

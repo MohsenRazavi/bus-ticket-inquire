@@ -4,9 +4,11 @@ from app.constants import BALE_URL
 from app.settings import BALE_TOKEN, EXCEPTION_REPORT_CHAT_ID, DEBUG_SEND_MESSAGE, DEBUG_LOG
 
 
-def send_bale_message(chat_id: int, message: str):
+def send_bale_message(chat_id: int, message: str, reply_to_message_id = None):
     url = BALE_URL.format(token=BALE_TOKEN)
     json = {'chat_id': chat_id, 'text': message}
+    if reply_to_message_id:
+        json['reply_to_message_id'] = reply_to_message_id
     if DEBUG_SEND_MESSAGE:
         resp = requests.post(url, json=json)
         if DEBUG_LOG:
