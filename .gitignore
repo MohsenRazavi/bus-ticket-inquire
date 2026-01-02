@@ -5,4 +5,5 @@ ENV
 app/settings/local_settings.py
 trips.json
 *.log
-
+venv/
+executor.sh
