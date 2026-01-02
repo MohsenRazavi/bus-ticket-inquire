@@ -7,7 +7,7 @@ from app.constants import MRBILIT_INQUIRE_URL, SAMPLE_TEXT, ALERT_TEXT, MRBILIT_
     VIP_TEXT, MRBILIT_AUTH_TOKEN, MRBILIT_AUTH_SESSION
 from app.settings import (DEBUG_LOG, DEBUG_SAVE_TO_REDIS)
 from app.utills.bale import send_bale_message, send_exception_message
-from app.utills.redis import save_trip_to_redis, trip_exists_in_redis
+from app.utills.redis import save_trip_to_redis, trip_exists_in_redis, delete_trip_from_redis
 from app.utills.trip import Trip
 
 
@@ -49,13 +49,14 @@ def inquire_and_notify_trips(trip: Trip, date_stamp: float, day_counter):
     for bus in resp['buses']:
         id_ = str(bus.get('id'))
         capacity = bus.get('capacity')
-        if last_message_id:=trip_exists_in_redis(id_):
-            if capacity == 0:
+        if capacity == 0:
+            if last_message_id := trip_exists_in_redis(id_):
+                delete_trip_from_redis(id_)
                 send_bale_message(chat_id=trip.report_chat_id, message='⭕️ ظرفیت تکمیل شد !',
                                   reply_to_message_id=str(last_message_id))
             continue
 
-        alert = True if capacity and capacity <= 10 else False
+        alert = True if capacity is not None and capacity <= 10 else False
         link = MRBILIT_RESERVE_URL.format(source=trip.source.name, destination=trip.destination.name,
                                           date=jdatetime.datetime.fromtimestamp(date_stamp).strftime(DATE_FORMAT))
         sending_text = SAMPLE_TEXT.format(from_city=bus.get('fromCity'),

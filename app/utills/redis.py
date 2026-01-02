@@ -52,3 +52,8 @@ def save_exception_to_redis(exception, message_id, _redis=None):
 @with_redis
 def exception_exists_in_redis(exception, _redis=None):
     return _redis.get(type(exception))
+
+
+@with_redis
+def delete_trip_from_redis(trip_id, _redis=None):
+    _redis.delete(make_trip_redis_key(trip_id))
