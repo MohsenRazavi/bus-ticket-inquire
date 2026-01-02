@@ -55,6 +55,8 @@ def inquire_and_notify_trips(trip: Trip, date_stamp: float, day_counter):
                 send_bale_message(chat_id=trip.report_chat_id, message='⭕️ ظرفیت تکمیل شد !',
                                   reply_to_message_id=str(last_message_id))
             continue
+        elif trip_exists_in_redis(id_):
+            continue
 
         alert = True if capacity is not None and capacity <= 10 else False
         link = MRBILIT_RESERVE_URL.format(source=trip.source.name, destination=trip.destination.name,
